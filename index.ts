@@ -1,11 +1,14 @@
 import path from 'path';
+import extraFs from 'fs-extra';
 import standardFs from 'fs'
 import fs from 'fs/promises';
 import figlet from 'figlet';
 import chalk from 'chalk';
 import ora from 'ora';
-import { askForMangaToParse, extractAndReadCbzFile, getOrderedFiles, retrieveMangaDirectory } from './src/Utils';
 import { Logger } from './src/Logger';
+import { Extractor } from './src/Extractor';
+import { Sorter } from './src/Sorter';
+import { askForMangaToParse, retrieveMangaDirectory } from './src/UserInteraction';
 
 // Funzione principale per gestire il processo
 const Kinga = async () => {
@@ -29,8 +32,9 @@ const Kinga = async () => {
 
     for (const manga of listOfMangaToParse) {
       spinner.start(`Parsing ${manga}...`)
+      const singleMangaPath = path.join(MANGA_DIR, manga)
 
-      const chaptersList = (await fs.readdir(path.join(MANGA_DIR, manga)))
+      const chaptersList = (await fs.readdir(singleMangaPath))
 
       if (!chaptersList || chaptersList.length === 0) {
         Logger.error('No chapters found. Skipping...')
@@ -40,22 +44,58 @@ const Kinga = async () => {
 
       // Retrieve the Folder Name and if there is an extension.
       const folderName = chaptersList[0].split(' ')[0]
-      const extension = chaptersList[0].split('.').pop() //Can be the full name if no extension
+      const hasExtension = chaptersList[0].includes('.') && chaptersList[0].split('.').length > 1 && !parseFloat(chaptersList[0].split('.').pop() || '') // Even if chapter number is 123.1.cbz it will return .cbz
+      const extension = hasExtension ? '.' + chaptersList[0].split('.').pop() : undefined
+      const outputPath = path.join(MANGA_DIR, manga, manga)
+      let chapters: string[]
 
-      Logger.debug(`Folder Name: ${folderName}`)
-      Logger.debug(`Extension: ${extension}\n\n`)
+      try {
+        chapters = await Sorter.getOrderedChapters({
+          dirPath: singleMangaPath,
+          name: folderName,
+          extension: extension
+        })
+      } catch (err) {
+        Logger.error(`Error while getting the ordered chapters: ${err}`);
+        spinner.fail(`Error while getting the ordered chapters: ${err}`)
+        throw err;
+      }
 
-      spinner.succeed(`Parsing ${manga}...`)
+      if (!chapters || chapters.length === 0) {
+        Logger.error('Unable to parse. Skipping...')
+        spinner.fail(`Unable to parse. Skipping...`)
+        continue
+      }
+
+      Logger.info(`${manga} has ${chapters.length} chapters`)
+
+      if (extraFs.pathExistsSync(outputPath)) {
+        extraFs.rmSync(outputPath, { recursive: true, force: true });
+      }
+
+      extraFs.mkdirSync(outputPath)
+
+      if (extension) { // If there is an extension it will likely be an archive like .cbz
+        await Extractor.extractAndRewriteChapters({
+          basePath: singleMangaPath,
+          chaptersList: chapters,
+          outputPath: outputPath
+        })
+      } else {
+        await Extractor.rewriteChapters({
+          basePath: singleMangaPath,
+          chaptersList: chapters,
+          outputPath: outputPath
+        })
+      }
+
+      spinner.succeed(`${manga} parsed!`)
+
+      extraFs.createFileSync(path.join(singleMangaPath, '.parsed'))
     }
-    // const cbzFiles: string[] = await getOrderedFiles(CHAPTERS_DIR, ".cbz");
-    // console.log('File .cbz ordinati:', cbzFiles);
 
-    // for (const file of cbzFiles) {
-    //   const filePath: string = path.join(CHAPTERS_DIR, file);
-    //   await extractAndReadCbzFile(filePath);
-    // }
   } catch (err) {
-    console.error('Errore durante il processo principale:', err);
+    Logger.error(`Errore durante il processo principale: ${err}`);
   }
 };
 
