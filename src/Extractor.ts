@@ -15,16 +15,11 @@ export class Extractor {
 
     for (const chapterArchive of chaptersList) {
       try {
-        Logger.info(`Extracting ${chapterArchive}...`);
 
         const scanList = (await unzipper.Open.file(path.join(basePath, chapterArchive))).files.filter(file => file.type === 'File' && !file.path.startsWith('.'));
         const orderedScans = await Sorter.getOrderedScans(scanList);
 
         for (const singlePageScan of orderedScans) {
-          const fileName = singlePageScan.path;
-          const size = singlePageScan.uncompressedSize;
-          Logger.info(`Extracting ${fileName} (${size} bytes)`);
-
           const buffer = await singlePageScan.buffer();
 
           extraFs.writeFileSync(
@@ -52,7 +47,6 @@ export class Extractor {
 
     for (const chapterDirectory of chaptersList) {
       try {
-        Logger.info(`Extracting ${chapterDirectory}...`);
 
         const scanList = extraFs.readdirSync(path.join(basePath, chapterDirectory)).filter(file => !file.startsWith('.'));
 

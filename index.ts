@@ -89,9 +89,9 @@ const Kinga = async () => {
         })
       }
 
-      spinner.succeed(`${manga} parsed!`)
-
       extraFs.createFileSync(path.join(singleMangaPath, '.parsed'))
+
+      spinner.succeed(`${manga} parsed!`)
     }
 
   } catch (err) {
