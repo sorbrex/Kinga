@@ -1,4 +1,4 @@
-# newconverter
+# Kinga
 
 To install dependencies:
 
