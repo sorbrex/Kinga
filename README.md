@@ -69,10 +69,10 @@ After processing, output will be:
 Once processing is complete, import the `KingaOutput` directory into [Kindle Comic Converter (KCC)](https://kcc.iosphe.re/) to generate Kindle-compatible files.
 
 ## TODO
-- [] NPM Package for global usage
-- [] UI (Electron or Tauri)
-- [] Parallel Parsing
-- [] Implementation of some API to check the Manga-Chapter correct count to make the right Volumes Numbers
+- [ ] NPM Package for global usage
+- [ ] UI (Electron or Tauri)
+- [ ] Parallel Parsing
+- [ ] Implementation of some API to check the Manga-Chapter correct count to make the right Volumes Numbers
 
 ## License
 
